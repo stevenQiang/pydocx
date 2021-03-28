@@ -38,8 +38,6 @@ nosetests.xml
 *.mo
 .idea
 
-test.html
-testxml.html
 
 main.py
 
