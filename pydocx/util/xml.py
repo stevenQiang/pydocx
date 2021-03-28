@@ -69,9 +69,13 @@ def convert_dictionary_to_style_fragment(style):
     return ';'.join("%s:%s" % item for item in items)
 
 
+def camelcase_key(k):
+    return re.sub('([a-z0-9])([A-Z])', r'\1-\2', k).lower()
+
+
 def convert_dictionary_to_html_attributes(attributes):
     return ' '.join(
-        '{k}="{v}"'.format(k=k, v=v)
+        '{k}="{v}"'.format(k=camelcase_key(k), v=v)
         for k, v in
         sorted(attributes.items())
     )

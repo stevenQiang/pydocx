@@ -171,27 +171,25 @@ class PyDocXHTMLExporter(PyDocXExporter):
 
     def head(self):
         tag = HtmlTag('head')
-        results = chain(self.meta(), self.style())
+        results = chain(self.meta(), self.meta_two(), self.style())
         return tag.apply(results)
 
     def style(self):
         styles = {
-            'body': {
-                'margin': '0px auto',
+            'p': {
+                'white-space': 'normal',
+                'line-height': '24px',
+            },
+            'span': {
+                'font-size': '14px',
+                'font-family': '宋体'
+            },
+            '.pydocx-center':  {
+                'text-align': ' center'
             }
         }
 
-        if self.page_width:
-            width = self.page_width / POINTS_PER_EM
-            styles['body']['width'] = '%.2fem' % width
-
         result = []
-        for name, definition in sorted(PYDOCX_STYLES.items()):
-            result.append('.pydocx-%s {%s}' % (
-                name,
-                convert_dictionary_to_style_fragment(definition),
-            ))
-
         for name, definition in sorted(styles.items()):
             result.append('%s {%s}' % (
                 name,
@@ -202,7 +200,10 @@ class PyDocXHTMLExporter(PyDocXExporter):
         return tag.apply(''.join(result))
 
     def meta(self):
-        yield HtmlTag('meta', charset='utf-8', allow_self_closing=True)
+        yield HtmlTag('meta', httpEquiv='Content-Type', content='text/html; charset=utf-8', allow_self_closing=True)
+
+    def meta_two(self):
+        yield HtmlTag('meta', name="viewport", content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no", allow_self_closing=True)
 
     def export(self):
         return ''.join(
@@ -259,7 +260,11 @@ class PyDocXHTMLExporter(PyDocXExporter):
             return
         if isinstance(paragraph.parent, NumberingItem):
             return
-        return HtmlTag('p')
+        attrs = {}
+        if paragraph.effective_properties and paragraph.effective_properties.justification:
+            pydocx_class = 'pydocx-{alignment}'.format(alignment=paragraph.effective_properties.justification)
+            attrs['class'] = pydocx_class
+        return HtmlTag('p', **attrs)
 
     def get_heading_tag(self, paragraph):
         if paragraph.has_ancestor(NumberingItem):
@@ -283,6 +288,9 @@ class PyDocXHTMLExporter(PyDocXExporter):
 
         tag = self.get_paragraph_tag(paragraph)
         if tag:
+            if paragraph.effective_properties and paragraph.effective_properties.justification != 'center':
+                span_tag = HtmlTag('span')
+                results = span_tag.apply(results, allow_empty=False)
             results = tag.apply(results)
 
         for result in results:
@@ -295,13 +303,13 @@ class PyDocXHTMLExporter(PyDocXExporter):
         # TODO These alignment values are for traditional conformance. Strict
         # conformance uses different values
         if alignment in [JUSTIFY_LEFT, JUSTIFY_CENTER, JUSTIFY_RIGHT]:
-            pydocx_class = 'pydocx-{alignment}'.format(
-                alignment=alignment,
-            )
-            attrs = {
-                'class': pydocx_class,
-            }
-            tag = HtmlTag('span', **attrs)
+            # pydocx_class = 'pydocx-{alignment}'.format(
+            #     alignment=alignment,
+            # )
+            # attrs = {
+            #     'class': pydocx_class,
+            # }
+            tag = HtmlTag('span')
             results = tag.apply(results, allow_empty=False)
         elif alignment is not None:
             # TODO What if alignment is something else?
@@ -841,7 +849,11 @@ class PyDocXHTMLExporter(PyDocXExporter):
         if style:
             attrs['style'] = convert_dictionary_to_style_fragment(style)
 
-        tag = HtmlTag('li', **attrs)
+        tag = HtmlTag('li')
+
+        span_tag = HtmlTag('span')
+        results = span_tag.apply(results, allow_empty=False)
+
         return tag.apply(results)
 
     def export_field_hyperlink(self, simple_field, field_args):
